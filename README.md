@@ -1,0 +1,2 @@
+# GOPOD-PUBLIC
+GOPOD for the PUBLIC
