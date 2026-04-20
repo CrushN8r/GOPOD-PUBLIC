@@ -29,6 +29,7 @@
 
   ## High-Level Architecture
 
+  ```text
   +---------------------+         +---------------------+         +---------------------+
   | Jetson              |         | T560                |         | Codex               |
   | Goverlord           |         | Gomad               |         | Repo Mutation Layer |
@@ -87,6 +88,7 @@
 
   If you want to write that into `GOPOD-PUBLIC/README.md` yourself, run:
 
+  ```bash
   cat > ~/crushn8r_git/GOPOD-PUBLIC/README.md <<'EOF'
   # GOPOD-PUBLIC
 
@@ -119,6 +121,7 @@
 
   ## High-Level Architecture
 
+  ```text
   +---------------------+         +---------------------+         +---------------------+
   | Jetson              |         | T560                |         | Codex               |
   | Goverlord           |         | Gomad               |         | Repo Mutation Layer |
@@ -173,5 +176,3 @@
   Active development.
 
   Private execution core remains separate.
-  
-  ## EOF
