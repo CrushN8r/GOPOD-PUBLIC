@@ -1,80 +1,177 @@
 # GOPOD-PUBLIC
 
-## Overview
+  ## Overview
 
-GOPOD is a modular robotics + AI orchestration system designed to control multiple robots from a single Jetson-based brain.
+  GOPOD is a deterministic multi-plane control system for robot orchestration.
 
-This public repo showcases:
+  This public repository documents the non-sensitive architecture, control model, and integration boundaries. It does not include the private runtime core, deployment state, or machine-local execution logic.
 
-* System architecture
-* High-level design
-* Selected non-sensitive components
+  GOPOD is not a chatbot, robotics demo, or autonomous agent sandbox. It is a constrained control system with explicit routing and execution boundaries.
 
-## Core Concept
+  ## System Model
 
-```
-Robots → wire-pod (runtime) → GOPOD (orchestration) → Goverlord (AI brain)
-```
+  GOPOD is organized as a 3-plane architecture:
 
-## Features
+  1. **Jetson / Goverlord**
+     - orchestration and decision layer
+     - produces structured ACTION objects
+     - does not talk to hardware directly
 
-* Multi-robot coordination
-* Local AI orchestration (multi-LLM ready)
-* Web-based control interface
-* Deterministic network architecture
+  2. **T560 / Gomad**
+     - deterministic actuator layer
+     - exposes the `/api-sdk` HTTP surface
+     - executes robot actions only
 
-## Status
+  3. **Codex**
+     - repository mutation layer
+     - used for code operations only
+     - not part of runtime decision logic
 
-Active development (private core system).
+  ## High-Level Architecture
 
-## Notes
+  +---------------------+         +---------------------+         +---------------------+
+  | Jetson              |         | T560                |         | Codex               |
+  | Goverlord           |         | Gomad               |         | Repo Mutation Layer |
+  | Decision / Routing  |         | Actuation / /api-sdk|         | Code Execution Only |
+  +---------------------+         +---------------------+         +---------------------+
 
-* Full system remains private
-* This repo is for demonstration, collaboration, and visibility
+  Jetson emits ACTION objects only.
+  T560 executes robot actions only.
+  Codex executes repository actions only.
 
-## Contact
+  ## Execution Flow
 
-For collaboration or access inquiries, reach out via GitHub.
+  Jetson -> goverlord_exec -> validator -> router -> (T560 | Codex)
 
-## UPDATE!!
+  All execution is expressed as a structured ACTION object:
 
-# GOPOD — Gomad + Goverlord
+  {
+    "type": "robot" | "code",
+    "target": "string",
+    "action": "string",
+    "params": {}
+  }
 
-**Distributed Control System for Multi-Robot Orchestration**  
-T560-Gomad = CLOSED Actuator Fabric  
-Jetson-Goverlord = ACTIVE Control Intelligence  
+  ## Architectural Constraints
 
-Hard architectural boundary enforced. No leakage. No exceptions.
+  - No direct robot control from Jetson tools or orchestration logic
+  - No direct execution from LLM-facing tools
+  - No side-effect execution outside the core execution path
+  - All actions must be validated before routing
+  - Router logic is deterministic and mapping-only
+  - T560 contains no business logic or planning
+  - Codex is isolated to repository mutation tasks
 
----
+  ## Public Scope
 
-### Hard Architectural Contract (Locked)
+  This repository is intended to expose:
 
-- **T560-Gomad** = CLOSED (stateless actuator fabric)  
-  - All low-level execution (wire-pod, Vector SDK, Moorebot ROS, etc.)  
-  - HTTP-only surface: `http://192.168.1.6:8080/`  
-  - Zero business logic, zero decision making
+  - architecture
+  - control contracts
+  - non-sensitive interfaces
+  - high-level system layout
 
-- **Jetson-Goverlord** = ACTIVE (pure decision + orchestration layer)  
-  - All intelligence, planning, and routing lives here  
-  - **100% of robot execution must flow through T560**  
-  - No direct hardware, no direct ROS, no direct SDK calls from Jetson
+  The following remain private:
 
-This contract is now **non-negotiable**.
+  - deployment-specific runtime code
+  - machine-local configuration
+  - active control infrastructure
+  - operational state and internal tooling
 
----
+  ## Status
 
-### Quick Start (Deterministic Brain — Option A)
+  Active development.
 
-```bash
-# 1. Clone & setup
-git clone https://github.com/crushn8r/GOPOD-PUBLIC.git
-cd GOPOD-PUBLIC
+  Private execution core remains separate.
 
-# 2. Install Gomad/Goverlord toolkit (run on both machines)
-cd tools/gomad-goverlord-toolkit
-./install-toolkit.sh   # (or follow the one-liner in tools/)
 
-# 3. Run the deterministic pipeline (Jetson)
-cd jetson-goverlord
-python3 goverlord_core.py vector1 say text "Hello from the brain"
+  If you want to write that into `GOPOD-PUBLIC/README.md` yourself, run:
+
+  cat > ~/crushn8r_git/GOPOD-PUBLIC/README.md <<'EOF'
+  # GOPOD-PUBLIC
+
+  ## Overview
+
+  GOPOD is a deterministic multi-plane control system for robot orchestration.
+
+  This public repository documents the non-sensitive architecture, control model, and integration boundaries. It does not include the private runtime core, deployment state, or machine-local execution logic.
+
+  GOPOD is not a chatbot, robotics demo, or autonomous agent sandbox. It is a constrained control system with explicit routing and execution boundaries.
+
+  ## System Model
+
+  GOPOD is organized as a 3-plane architecture:
+
+  1. **Jetson / Goverlord**
+     - orchestration and decision layer
+     - produces structured ACTION objects
+     - does not talk to hardware directly
+
+  2. **T560 / Gomad**
+     - deterministic actuator layer
+     - exposes the `/api-sdk` HTTP surface
+     - executes robot actions only
+
+  3. **Codex**
+     - repository mutation layer
+     - used for code operations only
+     - not part of runtime decision logic
+
+  ## High-Level Architecture
+
+  +---------------------+         +---------------------+         +---------------------+
+  | Jetson              |         | T560                |         | Codex               |
+  | Goverlord           |         | Gomad               |         | Repo Mutation Layer |
+  | Decision / Routing  |         | Actuation / /api-sdk|         | Code Execution Only |
+  +---------------------+         +---------------------+         +---------------------+
+
+  Jetson emits ACTION objects only.
+  T560 executes robot actions only.
+  Codex executes repository actions only.
+
+  ## Execution Flow
+
+  Jetson -> goverlord_exec -> validator -> router -> (T560 | Codex)
+
+  All execution is expressed as a structured ACTION object:
+
+  {
+    "type": "robot" | "code",
+    "target": "string",
+    "action": "string",
+    "params": {}
+  }
+
+  ## Architectural Constraints
+
+  - No direct robot control from Jetson tools or orchestration logic
+  - No direct execution from LLM-facing tools
+  - No side-effect execution outside the core execution path
+  - All actions must be validated before routing
+  - Router logic is deterministic and mapping-only
+  - T560 contains no business logic or planning
+  - Codex is isolated to repository mutation tasks
+
+  ## Public Scope
+
+  This repository is intended to expose:
+
+  - architecture
+  - control contracts
+  - non-sensitive interfaces
+  - high-level system layout
+
+  The following remain private:
+
+  - deployment-specific runtime code
+  - machine-local configuration
+  - active control infrastructure
+  - operational state and internal tooling
+
+  ## Status
+
+  Active development.
+
+  Private execution core remains separate.
+  
+  ## EOF
