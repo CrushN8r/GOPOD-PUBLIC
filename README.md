@@ -1,87 +1,239 @@
 # GOPOD-PUBLIC
 
-  ## Overview
+## Overview
 
-  GOPOD is a deterministic multi-plane control system for robot orchestration.
+GOPOD is a **deterministic multi-plane control system for real-world robot orchestration**.
 
-  This public repository documents the non-sensitive architecture, control model, and integration boundaries. It does not include the private runtime core, deployment state, or machine-local execution logic.
+It is not a chatbot.
+It is not an agent sandbox.
+It is not a probabilistic “AI that tries things.”
 
-  GOPOD is not a chatbot, robotics demo, or autonomous agent sandbox. It is a constrained control system with explicit routing and execution boundaries.
+GOPOD is a **controlled execution spine**—where every action is explicit, validated, and routed with zero ambiguity.
 
-  ## System Model
+This repository exposes the **architecture and control philosophy** behind GOPOD.
+The live execution core remains private.
 
-  GOPOD is organized as a 3-plane architecture:
+---
 
-  1. **Jetson / Goverlord**
-     - orchestration and decision layer
-     - produces structured ACTION objects
-     - does not talk to hardware directly
+## Why GOPOD Exists
 
-  2. **T560 / Gomad**
-     - deterministic actuator layer
-     - exposes the `/api-sdk` HTTP surface
-     - executes robot actions only
+Most AI + robotics systems fail for the same reason:
 
-  3. **Codex**
-     - repository mutation layer
-     - used for code operations only
-     - not part of runtime decision logic
+> They blur *thinking* and *doing*.
 
-  ## High-Level Architecture
+GOPOD enforces a hard boundary:
 
-  ```text
-  +---------------------+         +---------------------+         +---------------------+
-  | Jetson              |         | T560                |         | Codex               |
-  | Goverlord           |         | Gomad               |         | Repo Mutation Layer |
-  | Decision / Routing  |         | Actuation / /api-sdk|         | Code Execution Only |
-  +---------------------+         +---------------------+         +---------------------+
+* AI can **suggest**
+* Systems can **decide**
+* Only one layer can **execute**
 
-  Jetson emits ACTION objects only.
-  T560 executes robot actions only.
-  Codex executes repository actions only.
+That separation is the difference between:
 
-  ## Execution Flow
+* unpredictable demos
+  vs
+* **repeatable, scalable control**
 
-  Jetson -> goverlord_exec -> validator -> router -> (T560 | Codex)
+---
 
-  All execution is expressed as a structured ACTION object:
+## System Model
 
-  {
-    "type": "robot" | "code",
-    "target": "string",
-    "action": "string",
-    "params": {}
-  }
+GOPOD is a **3-plane architecture**:
 
-  ## Architectural Constraints
+### 1) Jetson / Goverlord (Decision Plane)
 
-  - No direct robot control from Jetson tools or orchestration logic
-  - No direct execution from LLM-facing tools
-  - No side-effect execution outside the core execution path
-  - All actions must be validated before routing
-  - Router logic is deterministic and mapping-only
-  - T560 contains no business logic or planning
-  - Codex is isolated to repository mutation tasks
+* Orchestrates logic and routing
+* Produces structured ACTION objects
+* Has **zero direct hardware access**
 
-  ## Public Scope
+---
 
-  This repository is intended to expose:
+### 2) T560 / Gomad (Execution Plane)
 
-  - architecture
-  - control contracts
-  - non-sensitive interfaces
-  - high-level system layout
+* Deterministic actuator layer
+* Exposes `/api-sdk` (HTTP)
+* Executes robot commands only
+* No planning, no interpretation
 
-  The following remain private:
+---
 
-  - deployment-specific runtime code
-  - machine-local configuration
-  - active control infrastructure
-  - operational state and internal tooling
+### 3) Codex (Mutation Plane)
 
-  ## Status
+* Repository modification only
+* No runtime execution authority
+* Fully isolated from robot control
 
-  Active development.
+---
 
-  Private execution core remains separate.
-  
+## High-Level Architecture
+
+```
++---------------------+         +---------------------+         +---------------------+
+| Jetson              |         | T560                |         | Codex               |
+| Goverlord           |         | Gomad               |         | Repo Mutation Layer |
+| Decision / Routing  |         | Actuation / /api-sdk|         | Code Execution Only |
++---------------------+         +---------------------+         +---------------------+
+```
+
+**Strict rules:**
+
+* Jetson emits ACTION objects only
+* T560 executes robot actions only
+* Codex executes repository actions only
+
+No cross-contamination. No shortcuts.
+
+---
+
+## Execution Flow
+
+```
+Jetson
+  → goverlord_exec
+    → validator
+      → router
+        → (T560 | Codex)
+```
+
+All behavior is expressed as a structured ACTION object:
+
+```json
+{
+  "type": "robot" | "code",
+  "target": "string",
+  "action": "string",
+  "params": {}
+}
+```
+
+No hidden execution paths exist.
+
+---
+
+## Architectural Constraints (Non-Negotiable)
+
+* No direct robot control from orchestration logic
+* No execution from LLM-facing tools
+* No side-effects outside the execution pipeline
+* All actions must be validated before routing
+* Router is deterministic (mapping only)
+* Execution layer contains **zero business logic**
+* Mutation layer cannot influence runtime behavior
+
+---
+
+## What’s Working Today
+
+GOPOD currently achieves:
+
+* Deterministic robot control via HTTP (`/assume → /say_text → /release`)
+* Multi-robot addressing using explicit serial mapping
+* Clean execution through a single authoritative path (`goverlord_exec`)
+* Tooling bridge (WebUI → execution) with zero logic duplication
+* Full end-to-end validation from command → physical robot response
+
+This is not theoretical.
+
+It is **running hardware** under strict control constraints.
+
+---
+
+## What’s Coming Next
+
+This is where it gets interesting.
+
+### 1) Linguistic Trigger → Action Bridge
+
+Natural language → structured ACTION objects
+Still deterministic. Still explicit. No hidden intent execution.
+
+---
+
+### 2) Multi-Robot Interaction Layer
+
+* Turn-taking
+* Timing control
+* Coordinated responses
+* Shared conversational state
+
+From:
+
+> “send command to robot”
+
+To:
+
+> **robots interacting with each other through controlled execution**
+
+---
+
+### 3) Controlled Autonomy (Not “AI Autonomy”)
+
+* Bounded decision loops
+* Explicit triggers
+* Observable state transitions
+
+No black-box behavior. Ever.
+
+---
+
+### 4) Swarm-Oriented Extensions
+
+* Multi-agent orchestration
+* Role-based robot behavior
+* Distributed execution patterns
+
+All built on the same constraint:
+
+> **Nothing executes unless it passes through the spine**
+
+---
+
+## Design Philosophy
+
+GOPOD is built on a simple idea:
+
+> Systems should be **boring at the point of execution**.
+
+All complexity belongs *before* execution.
+All execution must be:
+
+* visible
+* traceable
+* repeatable
+
+---
+
+## Public Scope
+
+This repository exposes:
+
+* Architecture
+* Control contracts
+* Execution model
+* Integration boundaries
+
+---
+
+## Private (Not Included)
+
+* Runtime execution core
+* Machine-local configuration
+* Active deployments
+* Internal orchestration tooling
+
+---
+
+## Status
+
+**Active development. Core execution validated.**
+
+Multi-robot orchestration is **one layer away**.
+
+---
+
+## Read This Twice
+
+GOPOD is not trying to make robots “smart.”
+
+It is making them **controlled**.
+
+That difference is everything.
